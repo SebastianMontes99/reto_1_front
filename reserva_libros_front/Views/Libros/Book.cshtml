@@ -1,0 +1,106 @@
+﻿<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
+@model List<reserva_libros_front.ServiceReference1.Libro>
+
+@{
+    ViewBag.Title = "Libros";
+}
+
+<h2>Lista de Libros</h2>
+
+<div id="popup" style="display: none;">
+    <p id="popup-message"></p>
+    <button id="popup-close">Cerrar</button>
+</div>
+
+@if (Model != null && Model.Any())
+{
+    <table class="table" id="librosTable">
+        <tr>
+            <th>ID del Libro</th>
+            <th>Código del Libro</th>
+            <th>Título del Libro</th>
+            <th>Estado</th>
+            <th>Fecha de Reserva</th>
+        </tr>
+        @foreach (var libro in Model)
+        {
+            <tr class="@((libro.InstStatus == 1) ? "active" : "inactive") libro-row">
+                <td>@libro.IdBook</td>
+                <td>@libro.Codigo</td>
+                <td>@libro.Titulo</td>
+                <td data-status="@libro.InstStatus">
+                    @if (libro.InstStatus == 1)
+                    {
+                        <span>NO RESERVADO</span>
+                    }
+                    else
+                    {
+                        <span>RESERVADO</span>
+                    }
+                </td>
+                <td>@libro.DmeDateUpdate.ToString("dd/MM/yyyy")</td>
+            </tr>
+        }
+    </table>
+}
+else
+{
+    <p>No hay libros disponibles.</p>
+}
+
+<script>
+    $(document).ready(function () {
+        $("#librosTable").on("click", ".libro-row", function () {
+            var status = $(this).find("td[data-status]").data("status");
+
+            if (status === 1) {
+                confirmarReserva($(this));
+            } else {
+                mostrarMensajeNoReservar($(this));
+            }
+        });
+
+        function confirmarReserva(row) {
+            var tituloLibro = row.find("td:nth-child(3)").text();
+            var confirmacion = confirm("¿Está seguro que desea reservar el libro \"" + tituloLibro + "\"?");
+
+            if (confirmacion) {
+                var requestData = {
+                    IdLibro: row.find("td:first-child").text(),
+                    IdUsuario: "1"
+                };
+
+                $.ajax({
+                    url: 'http://localhost:54636/Service1.svc/ReservarLibro',
+                    type: 'POST',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    data: JSON.stringify(requestData),
+                    contentType: 'application/json',
+                    success: function (response) {
+                        mostrarPopup("Libro reservado con éxito");
+                    },
+                    error: function () {
+                        mostrarPopup("Error al reservar el libro");
+                    }
+                });
+            }
+        }
+
+        function mostrarMensajeNoReservar(row) {
+            var tituloLibro = row.find("td:nth-child(3)").text();
+            mostrarPopup("No es posible reservar el libro \"" + tituloLibro + "\".");
+        }
+
+        function mostrarPopup(message) {
+            $("#popup-message").text(message);
+            $("#popup").show();
+
+            $("#popup-close").on("click", function () {
+                $("#popup").hide();
+            });
+        }
+    });
+</script>
